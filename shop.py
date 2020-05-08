@@ -287,7 +287,7 @@ def on_info(server, info):
                 server.tell(info.player, itemname + ' sold with ' + cointype + 'does not exist in sellable list')
                 return
             server_buy_price_n = calc_buy_multi_price(current_time=time.time(), item=item_val, amount=amount)
-            server_buy_price_n_int = math.ceil(server_buy_price_n)
+            server_buy_price_n_int = math.floor(server_buy_price_n)
             # check if the player have enough items
             # player_backpack_raw=server.rcon_query('data get entity ' + info.player + ' Inventory')
             PlayerInfoAPI = server.get_plugin_instance('PlayerInfoAPI')
