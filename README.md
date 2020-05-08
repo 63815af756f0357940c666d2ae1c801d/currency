@@ -1,4 +1,3 @@
 # currency
-currency &amp; shop using MCDR
-Still under construction
-PLEASE DO NOT USE NOW
+currency &amp; shop using <a href='https://github.com/Fallen-Breath/MCDReforged'>MCDR</a>
+
