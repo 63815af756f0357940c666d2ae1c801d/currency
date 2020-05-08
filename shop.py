@@ -165,8 +165,8 @@ def load_config(path='shop'):
 
         f = open(os.path.join(path, 'price_sell.csv'),'w')
         f.write('item_name,money_type,'
-                'base_price_increase_rate,base_price,sold_count,sold_multiplier'
-                'half_time_recover,time_scale'
+                'base_price_increase_rate,base_price,sold_count,sold_multiplier,'
+                'half_time_recover,time_scale,'
                 'last_sold_time,last_sold_price,sold_price_multiplier')
         f.write('\n')
         f.close()
