@@ -7,11 +7,16 @@ import math
 import scipy.special as sc
 import os
 
+config_path = 'shop'
+
 total_bought_count_multiplied = 0
 total_sold_count_multiplied = 0
 
 list_buy = []
 list_sell = []
+
+buy_df = pd.DataFrame()
+sell_df = pd.DataFrame()
 
 
 class Goods_to_buy(object):
@@ -118,7 +123,7 @@ class Goods_to_sell(object):
 def calc_sell_price(current_time, item: Goods_to_sell, total_sold=total_sold_count_multiplied):
     current_base_price = item.base_price * (item.base_price_increase_rate ** (item.sold_count / item.sold_multiplier))
     current_sold_base_price = current_base_price * (
-            1 + item.sold_count / item.sold_multiplier / total_sold)
+            1 + item.sold_count / item.sold_multiplier / (total_sold + 1))  # add one in case of zero
     a = item.half_time_recover / item.time_scale + 1
     delta_time = current_time - item.last_sold_time
     delta_time_normalized = delta_time / item.time_scale
@@ -144,12 +149,16 @@ def calc_sell_multi_price(current_time, item: Goods_to_sell, amount):
     return totalmoney
 
 
-def load_config(path='shop'):
+def load_config():
+    global buy_df
+    global sell_df
     global list_buy
     global list_sell
-    if not os.path.exists(path):
+    global total_bought_count_multiplied
+    global total_sold_count_multiplied
+    if not os.path.exists(config_path):
         os.mkdir('shop')
-        f = open(os.path.join(path, 'price_buy.csv'), 'w')
+        f = open(os.path.join(config_path, 'price_buy.csv'), 'w')
         f.write('item_name,money_type,'
                 'max_price_reduce_rate,protected_max_price,bought_count,bought_multiplier,'
                 'half_time_recover,time_scale,'
@@ -161,7 +170,7 @@ def load_config(path='shop'):
         # Info: half_time_recover>0
         # lowest price and protected base price can be below zero
 
-        f = open(os.path.join(path, 'price_sell.csv'), 'w')
+        f = open(os.path.join(config_path, 'price_sell.csv'), 'w')
         f.write('item_name,money_type,'
                 'base_price_increase_rate,base_price,sold_count,sold_multiplier,'
                 'half_time_recover,time_scale,'
@@ -172,10 +181,14 @@ def load_config(path='shop'):
         print('blank config files generated.')
         return
     else:
-        buy_df = pd.read_csv(os.path.join(path, 'price_buy.csv'))
-        sell_df = pd.read_csv(os.path.join(path, 'price_sell.csv'))
+        buy_df = pd.read_csv(os.path.join(config_path, 'price_buy.csv'))
+        sell_df = pd.read_csv(os.path.join(config_path, 'price_sell.csv'))
         list_buy = [Goods_to_buy(row) for index, row in buy_df.iterrows()]
         list_sell = [Goods_to_sell(row) for index, row in sell_df.iterrows()]
+        for item in list_buy:
+            total_bought_count_multiplied += item.bought_count / item.bought_multiplier
+        for item in list_sell:
+            total_sold_count_multiplied += item.sold_count / item.sold_multiplier
         print(len(list_buy), ' buy config(s) loaded, ', len(list_sell), ' sell config(s) loaded.')
 
 
@@ -192,6 +205,8 @@ def get_buy_item(item_name, coin_type):
 
 
 def on_info(server, info):
+    global total_sold_count_multiplied
+    global total_bought_count_multiplied
     if info.is_player:
         if info.content.startswith("!!buy "):
             args = info.content.split(" ")
@@ -253,6 +268,12 @@ def on_info(server, info):
                 return
             currency.submoney(server, info.player, cointype, server_sell_price_n_int)
             server.execute('give ' + info.player + ' ' + itemname + ' ' + str(amount))
+            item_val.sold_count += amount
+            total_sold_count_multiplied += amount / item_val.sold_multiplier
+            sell_df.loc[(sell_df['item_name'] == item_val.item_name) and (
+                        sell_df['money_type'] == item_val.money_type), "sold_count"] = item_val.sold_count
+            sell_df.to_csv(os.path.join(config_path, 'price_sell.csv'))
+
         if (info.content.startswith("!!sellconfirm ")):
             args = info.content.split(" ")
             if (len(args) != 4):
@@ -281,6 +302,11 @@ def on_info(server, info):
             currency = server.get_plugin_instance('currency')
             currency.addmoney(server, info.player, cointype, server_buy_price_n_int)
             server.execute('clear ' + info.player + ' ' + itemname + ' ' + str(amount))
+            item_val.bought_count += amount
+            total_bought_count_multiplied += amount / item_val.bought_multiplier
+            buy_df.loc[(buy_df['item_name'] == item_val.item_name) and (
+                        buy_df['money_type'] == item_val.money_type), "bought_count"] = item_val.bought_count
+            buy_df.to_csv(os.path.join(config_path, 'price_buy.csv'))
 
 
 def on_load(server, old):
