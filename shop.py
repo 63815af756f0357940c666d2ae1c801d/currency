@@ -211,7 +211,7 @@ def on_info(server, info):
             server.tell(info.player, itemname + ' : ' + str(server_sell_price) + ' for one, ' + str(
                 server_sell_price_10) + ' for tens, ' + str(server_sell_price_64) + 'for 64 items')
             server.tell(info.player, 'Enter !!buyconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to buy.')
-        if (info.conntent.startswith("!!sell ")):
+        if (info.content.startswith("!!sell ")):
             args = info.content.split(" ")
             if (len(args) != 3):
                 server.tell(info.player, '!!sell <item> <cointype>')
@@ -229,7 +229,7 @@ def on_info(server, info):
             server.tell(info.player, itemname + ' : ' + str(server_buy_price) + ' for one, ' + str(
                 server_buy_price_10) + ' for tens, ' + str(server_buy_price_64) + 'for 64 items')
             server.tell(info.player, 'Enter !!sellconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to sell.')
-        if (info.conntent.startswith("!!buyconfirm ")):
+        if (info.content.startswith("!!buyconfirm ")):
             args = info.content.split(" ")
             if (len(args) != 4):
                 server.tell(info.player, 'use !!buy <item> <cointype> first')
@@ -253,7 +253,7 @@ def on_info(server, info):
                 return
             currency.submoney(server, info.player, cointype, server_sell_price_n_int)
             server.execute('give ' + info.player + ' ' + itemname + ' ' + str(amount))
-        if (info.conntent.startswith("!!sellconfirm ")):
+        if (info.content.startswith("!!sellconfirm ")):
             args = info.content.split(" ")
             if (len(args) != 4):
                 server.tell(info.player, 'use !!sell <item> <cointype> first')
