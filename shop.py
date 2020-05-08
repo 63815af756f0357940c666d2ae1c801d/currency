@@ -1,13 +1,11 @@
 import copy
 import time
-#import currency
-#import PlayerInfoAPI
+# import currency
+# import PlayerInfoAPI
 import pandas as pd
 import math
 import scipy.special as sc
 import os
-
-
 
 total_bought_count_multiplied = 0
 total_sold_count_multiplied = 0
@@ -151,7 +149,7 @@ def load_config(path='shop'):
     global list_sell
     if not os.path.exists(path):
         os.mkdir('shop')
-        f = open(os.path.join(path, 'price_buy.csv'),'w')
+        f = open(os.path.join(path, 'price_buy.csv'), 'w')
         f.write('item_name,money_type,'
                 'max_price_reduce_rate,protected_max_price,bought_count,bought_multiplier,'
                 'half_time_recover,time_scale,'
@@ -163,7 +161,7 @@ def load_config(path='shop'):
         # Info: half_time_recover>0
         # lowest price and protected base price can be below zero
 
-        f = open(os.path.join(path, 'price_sell.csv'),'w')
+        f = open(os.path.join(path, 'price_sell.csv'), 'w')
         f.write('item_name,money_type,'
                 'base_price_increase_rate,base_price,sold_count,sold_multiplier,'
                 'half_time_recover,time_scale,'
@@ -178,6 +176,7 @@ def load_config(path='shop'):
         sell_df = pd.read_csv(os.path.join(path, 'price_sell.csv'))
         list_buy = [Goods_to_buy(row) for index, row in buy_df.iterrows()]
         list_sell = [Goods_to_sell(row) for index, row in sell_df.iterrows()]
+        print(len(list_buy), ' buy config(s) loaded, ', len(list_sell), ' sell config(s) loaded.')
 
 
 def get_sell_item(item_name, coin_type):
@@ -243,16 +242,17 @@ def on_info(server, info):
                 server.tell(info.player, itemname + ' bought with ' + cointype + 'does not exist in buyable list')
                 return
             server_sell_price_n = calc_sell_multi_price(current_time=time.time(), item=item_val, amount=amount)
-            server_sell_price_n_int=math.ceil(server_sell_price_n)
+            server_sell_price_n_int = math.ceil(server_sell_price_n)
             # check if the player have enough money
             currency = server.get_plugin_instance('currency')
-            player_money=currency.getmoney_pr(server,info.player,cointype)
-            if(player_money<server_sell_price_n_int):
-                server.tell(info.player,'Buy '+str(amount)+' '+itemname+' requires '+str(server_sell_price_n_int)+' '+cointype)
-                server.tell(info.player,'You have '+player_money+' '+cointype+' yet.')
+            player_money = currency.getmoney_pr(server, info.player, cointype)
+            if (player_money < server_sell_price_n_int):
+                server.tell(info.player, 'Buy ' + str(amount) + ' ' + itemname + ' requires ' + str(
+                    server_sell_price_n_int) + ' ' + cointype)
+                server.tell(info.player, 'You have ' + player_money + ' ' + cointype + ' yet.')
                 return
-            currency.submoney(server,info.player,cointype,server_sell_price_n_int)
-            server.execute('give '+info.player+' '+itemname+' '+str(amount))
+            currency.submoney(server, info.player, cointype, server_sell_price_n_int)
+            server.execute('give ' + info.player + ' ' + itemname + ' ' + str(amount))
         if (info.conntent.startswith("!!sellconfirm ")):
             args = info.content.split(" ")
             if (len(args) != 4):
@@ -268,15 +268,15 @@ def on_info(server, info):
             server_buy_price_n = calc_buy_multi_price(current_time=time.time(), item=item_val, amount=amount)
             server_buy_price_n_int = math.ceil(server_buy_price_n)
             # check if the player have enough items
-            #player_backpack_raw=server.rcon_query('data get entity ' + info.player + ' Inventory')
+            # player_backpack_raw=server.rcon_query('data get entity ' + info.player + ' Inventory')
             PlayerInfoAPI = server.get_plugin_instance('PlayerInfoAPI')
-            playerinv=PlayerInfoAPI.getPlayerInfo(server,info.player,path='Inventory')
-            total_amount=0
+            playerinv = PlayerInfoAPI.getPlayerInfo(server, info.player, path='Inventory')
+            total_amount = 0
             for invitem in playerinv:
-                if (invitem['id']==itemname)or(invitem['id']=='minecraft:'+itemname):
-                    total_amount+=int(invitem['Count'])
-            if(total_amount<amount):
-                server.tell(info.player,'You have '+str(total_amount)+' '+itemname+' only.')
+                if (invitem['id'] == itemname) or (invitem['id'] == 'minecraft:' + itemname):
+                    total_amount += int(invitem['Count'])
+            if (total_amount < amount):
+                server.tell(info.player, 'You have ' + str(total_amount) + ' ' + itemname + ' only.')
                 return
             currency = server.get_plugin_instance('currency')
             currency.addmoney(server, info.player, cointype, server_buy_price_n_int)
