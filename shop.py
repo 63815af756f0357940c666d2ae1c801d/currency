@@ -284,7 +284,6 @@ def on_info(server, info):
 
 
 def on_load(server, old):
-    server.add_help_message('!!sell <item> <cointype>', 'sell item')
-
     load_config()
+    server.add_help_message('!!sell <item> <cointype>', 'sell item')
     server.add_help_message('!!buy <item> <cointype>', 'buy item')
