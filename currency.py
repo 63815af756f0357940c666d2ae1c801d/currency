@@ -11,6 +11,14 @@ def getmoney(server, info, playername, moneytype):
         server.tell(info.player, 'Warning: ' + playername + ' haven''t had any ' + moneytype)
         return 0
 
+def getmoney_svr(server, playername, moneytype):
+    resultstr = server.rcon_query('scoreboard players get ' + playername + ' ' + moneytype)
+    if (re.fullmatch(r'\w+ has \d* .*', resultstr)):
+        vals = resultstr.split(' ')
+        return int(vals[2])
+    else:
+        print('Warning: ' + playername + ' haven''t had any ' + moneytype)
+        return 0
 
 def getmoney_pr(server, playername, moneytype):
     return server.rcon_query('scoreboard players get ' + playername + ' ' + moneytype)

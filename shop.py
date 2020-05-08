@@ -260,7 +260,7 @@ def on_info(server, info):
             server_sell_price_n_int = math.ceil(server_sell_price_n)
             # check if the player have enough money
             currency = server.get_plugin_instance('currency')
-            player_money = currency.getmoney_pr(server, info.player, cointype)
+            player_money = currency.getmoney_svr(server, info.player, cointype)
             if (player_money < server_sell_price_n_int):
                 server.tell(info.player, 'Buy ' + str(amount) + ' ' + itemname + ' requires ' + str(
                     server_sell_price_n_int) + ' ' + cointype)
