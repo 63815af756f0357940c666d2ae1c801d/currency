@@ -18,7 +18,7 @@ list_sell = []
 
 class Goods_to_buy(object):
     def __init__(self, row=None):
-        if (row):
+        if not (row is None):
             self.item_name = row.item_name
             self.money_type = row.money_type
 
@@ -84,7 +84,7 @@ def calc_buy_multi_price(current_time, item: Goods_to_buy, amount):
 
 class Goods_to_sell(object):
     def __init__(self, row=None):
-        if (row):
+        if not (row is None):
             self.item_name = row.item_name
             self.money_type = row.money_type
 
