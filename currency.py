@@ -1,4 +1,5 @@
 import re
+import copy
 
 
 def getmoney(server, info, playername, moneytype):
@@ -10,8 +11,10 @@ def getmoney(server, info, playername, moneytype):
         server.tell(info.player, 'Warning: ' + playername + ' haven''t had any ' + moneytype)
         return 0
 
+
 def getmoney_pr(server, playername, moneytype):
     return server.rcon_query('scoreboard players get ' + playername + ' ' + moneytype)
+
 
 def setmoney(server, playername, moneytype, val):
     server.execute('scoreboard players set ' + playername + ' ' + moneytype + ' ' + str(val))
@@ -23,6 +26,12 @@ def addmoney(server, playername, moneytype, val):
 
 def submoney(server, playername, moneytype, val):
     server.execute('scoreboard players remove ' + playername + ' ' + moneytype + ' ' + str(val))
+
+
+def onServerInfo(server, info):
+    info2 = copy.deepcopy(info)
+    info2.isPlayer = info2.is_player
+    on_info(server, info2)
 
 
 def on_info(server, info):
@@ -45,7 +54,7 @@ def on_info(server, info):
                 return
             args = info.content.split(" ")
             if (len(args) != 4):
-                server.tell(info.player,'!!take <player> <type> amount')
+                server.tell(info.player, '!!take <player> <type> amount')
                 return
             playername = args[1]
             cointype = args[2]
@@ -57,7 +66,7 @@ def on_info(server, info):
                 return
             args = info.content.split(" ")
             if (len(args) != 4):
-                server.tell(info.player,'!!set <player> <type> amount')
+                server.tell(info.player, '!!set <player> <type> amount')
                 return
             playername = args[1]
             cointype = args[2]
