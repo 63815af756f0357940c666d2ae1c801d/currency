@@ -30,7 +30,7 @@ def submoney(server, playername, moneytype, val):
 
 def onServerInfo(server, info):
     info2 = copy.deepcopy(info)
-    info2.isPlayer = info2.is_player
+    info2.is_player=info.isPlayer
     on_info(server, info2)
 
 
