@@ -269,7 +269,7 @@ def on_info(server, info):
             if (player_money < server_sell_price_n_int):
                 server.tell(info.player, 'Buy ' + str(amount) + ' ' + itemname + ' requires ' + str(
                     server_sell_price_n_int) + ' ' + cointype)
-                server.tell(info.player, 'You have ' + player_money + ' ' + cointype + ' yet.')
+                server.tell(info.player, 'You have ' + str(player_money) + ' ' + cointype + ' yet.')
                 return
             currency.submoney(server, info.player, cointype, server_sell_price_n_int)
             server.execute('give ' + info.player + ' ' + itemname + ' ' + str(amount))
@@ -331,9 +331,48 @@ def on_info(server, info):
             buy_df.loc[df_i, 'last_sold_time'] = item_val.last_bought_time
             buy_df.loc[df_i, 'last_sold_price'] = last_item_price
             buy_df.to_csv(os.path.join(config_path, 'price_buy.csv'), index=False)
+        if (info.content.startswith("!!reloadconfig")):
+            if server.get_permission_level(info) < 3:
+                server.tell(info.player, 'You don''t have permission to do that!')
+                return
+            load_config()
+        if (info.content.startswith("!!buylist")):
+            args = info.content.split(" ")
+            if (len(args) > 2):
+                server.tell(info.player, 'use !!buylist [pagenum]')
+                return
+            item_per_page = 10
+            pagenum = 1
+            if (len(args) == 2):
+                pagenum = int(args[1])
+            sell_len = sell_df.shape[0]
+            for i in range((pagenum - 1) * item_per_page, pagenum * item_per_page):
+                if (i >= sell_len):
+                    break
+                item_val = list_sell[i]
+                server.tell(info.player, item_val.item_name + ' ' + item_val.money_type + ' ' + str(
+                    calc_sell_price(time.time(), item_val)))
+        if (info.content.startswith("!!selllist")):
+            args = info.content.split(" ")
+            if (len(args) > 2):
+                server.tell(info.player, 'use !!selllist [pagenum]')
+                return
+            item_per_page = 10
+            pagenum = 1
+            if (len(args) == 2):
+                pagenum = int(args[1])
+            buy_len = buy_df.shape[0]
+            for i in range((pagenum - 1) * item_per_page, pagenum * item_per_page):
+                if (i >= buy_len):
+                    break
+                item_val = list_buy[i]
+                server.tell(info.player, item_val.item_name + ' ' + item_val.money_type + ' ' + str(
+                    calc_buy_price(time.time(), item_val)))
 
 
 def on_load(server, old):
     load_config()
+    server.add_help_message('!!buylist [pagenum]', 'see buyable list')
+    server.add_help_message('!!selllist [pagenum]', 'see sellable list')
     server.add_help_message('!!sell <item> <cointype>', 'sell item')
     server.add_help_message('!!buy <item> <cointype>', 'buy item')
