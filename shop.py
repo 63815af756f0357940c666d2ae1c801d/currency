@@ -56,19 +56,24 @@ class Goods_to_buy(object):
 
         self.last_price = 1.0
         self.last_bought_time = 0.0
+        self.bought_price_multiplier = 0.998
 
 
 def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_count_multiplied):
-    reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count/item.bought_multiplier) * (
-                item.max_price - item.protected_max_price) + item.protected_max_price
+    reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count / item.bought_multiplier) * (
+            item.max_price - item.protected_max_price) + item.protected_max_price
     reduced_bought_max_price = (1 - item.bought_count / item.bought_multiplier / (
             1 + total_bought)) * reduced_max_price
     a = item.half_time_recover / item.time_scale + 1
-    pb = (reduced_bought_max_price - item.lowest_price) / (item.max_price - item.lowest_price)
+    last_price_decreased = item.last_price * item.bought_price_multiplier
+    pb = (last_price_decreased - item.lowest_price) / (reduced_bought_max_price - item.lowest_price)
+    if (pb >= 1):
+        pb = 1 - 1e-8
     tb = sc.gammaincinv(a, pb)
     delta_time = current_time - item.last_bought_time
     delta_time_normalized = delta_time / item.time_scale
-    current_price = sc.gammainc(a, tb + delta_time_normalized)
+    current_price = sc.gammainc(a, tb + delta_time_normalized) * (
+                reduced_bought_max_price - item.lowest_price) + item.lowest_price
     return current_price
 
 
