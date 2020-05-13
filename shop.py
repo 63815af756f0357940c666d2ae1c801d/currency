@@ -38,6 +38,7 @@ class Goods_to_buy(object):
 
             self.last_price = row.last_price
             self.last_bought_time = row.last_bought_time
+            self.bought_price_multiplier=row.bought_price_multiplier
             return
 
         self.item_name = "air"
