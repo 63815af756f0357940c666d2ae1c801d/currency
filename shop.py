@@ -59,7 +59,8 @@ class Goods_to_buy(object):
 
 
 def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_count_multiplied):
-    reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count) + item.protected_max_price
+    reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count/item.bought_multiplier) * (
+                item.max_price - item.protected_max_price) + item.protected_max_price
     reduced_bought_max_price = (1 - item.bought_count / item.bought_multiplier / (
             1 + total_bought)) * reduced_max_price
     a = item.half_time_recover / item.time_scale + 1
@@ -77,7 +78,8 @@ def calc_buy_multi_price(current_time, item: Goods_to_buy, amount):
     totalmoney = 0
     lastmoney = 0
     for i in range(amount):
-        curr_price = calc_buy_price(current_time, virtual_item, total_bought=virtual_total_bought)
+        curr_price = calc_buy_price(current_time, virtual_item,
+                                    total_bought=virtual_total_bought + i / item.bought_multiplier)
         totalmoney += curr_price
         lastmoney = curr_price
         virtual_item.last_bought_time = current_time
@@ -143,7 +145,8 @@ def calc_sell_multi_price(current_time, item: Goods_to_sell, amount):
     totalmoney = 0
     lastmoney = 0
     for i in range(amount):
-        curr_price = calc_sell_price(current_time, virtual_item, total_sold=virtual_total_sold)
+        curr_price = calc_sell_price(current_time, virtual_item,
+                                     total_sold=virtual_total_sold + i / item.sold_multiplier)
         totalmoney += curr_price
         virtual_item.last_sold_price = curr_price
         virtual_item.last_sold_time = current_time
