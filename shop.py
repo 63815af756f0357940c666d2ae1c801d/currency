@@ -60,7 +60,7 @@ class Goods_to_buy(object):
         self.bought_price_multiplier = 0.998
 
 
-def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_count_multiplied):
+def calc_buy_price(current_time, item: Goods_to_buy, total_bought):
     reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count / item.bought_multiplier) * (
             item.max_price - item.protected_max_price) + item.protected_max_price
     reduced_bought_max_price = (1 - item.bought_count / item.bought_multiplier / (
@@ -75,6 +75,9 @@ def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_c
     delta_time_normalized = delta_time / item.time_scale
     current_price = sc.gammainc(a, tb + delta_time_normalized) * (
             reduced_bought_max_price - item.lowest_price) + item.lowest_price
+    # debug use
+    print(item.bought_count, ' ', total_bought, ' ', reduced_bought_max_price, ' ', item.last_price, ' ', pb, ' ', tb,
+          ' ', delta_time_normalized, ' ', current_price)
     return current_price
 
 
@@ -130,7 +133,7 @@ class Goods_to_sell(object):
         self.sold_price_multiplier = 1.01
 
 
-def calc_sell_price(current_time, item: Goods_to_sell, total_sold=total_sold_count_multiplied):
+def calc_sell_price(current_time, item: Goods_to_sell, total_sold):
     current_base_price = item.base_price * (item.base_price_increase_rate ** (item.sold_count / item.sold_multiplier))
     current_sold_base_price = current_base_price * (
             1 + item.sold_count / item.sold_multiplier / (total_sold + 1))  # add one in case of zero
@@ -198,20 +201,24 @@ def load_config():
         sell_df = pd.read_csv(os.path.join(config_path, 'price_sell.csv'))
         list_buy = [Goods_to_buy(row) for index, row in buy_df.iterrows()]
         list_sell = [Goods_to_sell(row) for index, row in sell_df.iterrows()]
+        total_bought_count_multiplied = 0.0
         for item in list_buy:
+            print('before ', total_bought_count_multiplied, ' ', item.bought_count, ' ', item.bought_multiplier)
             total_bought_count_multiplied += item.bought_count / item.bought_multiplier
+            print('after ', total_bought_count_multiplied)
+        total_sold_count_multiplied = 0.0
         for item in list_sell:
             total_sold_count_multiplied += item.sold_count / item.sold_multiplier
         print(len(list_buy), ' buy config(s) loaded, ', len(list_sell), ' sell config(s) loaded.')
 
 
-def get_sell_item(item_name, coin_type):
+def get_sell_item(item_name, coin_type) -> Goods_to_sell:
     for i in list_sell:
         if (i.item_name == item_name) and (i.money_type == coin_type):
             return i
 
 
-def get_buy_item(item_name, coin_type):
+def get_buy_item(item_name, coin_type) -> Goods_to_buy:
     for i in list_buy:
         if (i.item_name == item_name) and (i.money_type == coin_type):
             return i
@@ -231,13 +238,14 @@ def on_info(server, info):
             # !!buy item, means player buy item, equals to server sell item
             item_val = get_sell_item(itemname, cointype)
             if (not item_val):
-                server.tell(info.player, itemname + ' bought with ' + cointype + 'does not exist in buyable list')
+                server.tell(info.player, itemname + ' bought with ' + cointype + ' does not exist in buyable list')
                 return
-            server_sell_price = calc_sell_price(current_time=time.time(), item=item_val)
+            server_sell_price = calc_sell_price(current_time=time.time(), item=item_val,
+                                                total_sold=total_sold_count_multiplied)
             server_sell_price_10, _ = calc_sell_multi_price(current_time=time.time(), item=item_val, amount=10)
             server_sell_price_64, _ = calc_sell_multi_price(current_time=time.time(), item=item_val, amount=64)
             server.tell(info.player, itemname + ' : ' + str(server_sell_price) + ' for one, ' + str(
-                server_sell_price_10) + ' for tens, ' + str(server_sell_price_64) + 'for 64 items')
+                server_sell_price_10) + ' for tens, ' + str(server_sell_price_64) + ' for 64 items')
             server.tell(info.player, 'Enter !!buyconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to buy.')
         if (info.content.startswith("!!sell ")):
             args = info.content.split(" ")
@@ -249,13 +257,14 @@ def on_info(server, info):
             # !!sell item, means player sell item, equals to server buy item
             item_val = get_buy_item(itemname, cointype)
             if (not item_val):
-                server.tell(info.player, itemname + ' sold with ' + cointype + 'does not exist in sellable list')
+                server.tell(info.player, itemname + ' sold with ' + cointype + ' does not exist in sellable list')
                 return
-            server_buy_price = calc_buy_price(current_time=time.time(), item=item_val)
+            server_buy_price = calc_buy_price(current_time=time.time(), item=item_val,
+                                              total_bought=total_bought_count_multiplied)
             server_buy_price_10, _ = calc_buy_multi_price(current_time=time.time(), item=item_val, amount=10)
             server_buy_price_64, _ = calc_buy_multi_price(current_time=time.time(), item=item_val, amount=64)
             server.tell(info.player, itemname + ' : ' + str(server_buy_price) + ' for one, ' + str(
-                server_buy_price_10) + ' for tens, ' + str(server_buy_price_64) + 'for 64 items')
+                server_buy_price_10) + ' for tens, ' + str(server_buy_price_64) + ' for 64 items')
             server.tell(info.player, 'Enter !!sellconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to sell.')
         if (info.content.startswith("!!buyconfirm ")):
             args = info.content.split(" ")
@@ -267,7 +276,7 @@ def on_info(server, info):
             amount = int(args[3])
             item_val = get_sell_item(itemname, cointype)
             if (not item_val):
-                server.tell(info.player, itemname + ' bought with ' + cointype + 'does not exist in buyable list')
+                server.tell(info.player, itemname + ' bought with ' + cointype + ' does not exist in buyable list')
                 return
             server_sell_price_n, last_item_price = calc_sell_multi_price(current_time=time.time(), item=item_val,
                                                                          amount=amount)
@@ -276,12 +285,13 @@ def on_info(server, info):
             currency = server.get_plugin_instance('currency')
             player_money = currency.getmoney_svr(server, info.player, cointype)
             if (player_money < server_sell_price_n_int):
-                server.tell(info.player, 'Buy ' + str(amount) + ' ' + itemname + ' requires ' + str(
+                server.tell(info.player, 'Buy ' + str(amount) + ' ' + itemname + ' require ' + str(
                     server_sell_price_n_int) + ' ' + cointype)
                 server.tell(info.player, 'You have ' + str(player_money) + ' ' + cointype + ' yet.')
                 return
             currency.submoney(server, info.player, cointype, server_sell_price_n_int)
             server.execute('give ' + info.player + ' ' + itemname + ' ' + str(amount))
+            item_val.last_sold_price = last_item_price
             item_val.sold_count += amount
             item_val.last_sold_time = time.time()
             total_sold_count_multiplied += amount / item_val.sold_multiplier
@@ -307,7 +317,7 @@ def on_info(server, info):
             amount = int(args[3])
             item_val = get_buy_item(itemname, cointype)
             if (not item_val):
-                server.tell(info.player, itemname + ' sold with ' + cointype + 'does not exist in sellable list')
+                server.tell(info.player, itemname + ' sold with ' + cointype + ' does not exist in sellable list')
                 return
             server_buy_price_n, last_item_price = calc_buy_multi_price(current_time=time.time(), item=item_val,
                                                                        amount=amount)
@@ -326,6 +336,7 @@ def on_info(server, info):
             currency = server.get_plugin_instance('currency')
             currency.addmoney(server, info.player, cointype, server_buy_price_n_int)
             server.execute('clear ' + info.player + ' ' + itemname + ' ' + str(amount))
+            item_val.last_price = last_item_price
             item_val.bought_count += amount
             item_val.last_bought_time = time.time()
             total_bought_count_multiplied += amount / item_val.bought_multiplier
@@ -336,9 +347,9 @@ def on_info(server, info):
                 if ((lineval['item_name'] == item_val.item_name) and (lineval['money_type'] == item_val.money_type)):
                     df_i = i
                     break
-            buy_df.loc[df_i, 'sold_count'] = item_val.bought_count
-            buy_df.loc[df_i, 'last_sold_time'] = item_val.last_bought_time
-            buy_df.loc[df_i, 'last_sold_price'] = last_item_price
+            buy_df.loc[df_i, 'bought_count'] = item_val.bought_count
+            buy_df.loc[df_i, 'last_bought_time'] = item_val.last_bought_time
+            buy_df.loc[df_i, 'last_price'] = last_item_price
             buy_df.to_csv(os.path.join(config_path, 'price_buy.csv'), index=False)
         if (info.content.startswith("!!reloadconfig")):
             if server.get_permission_level(info) < 3:
@@ -360,7 +371,7 @@ def on_info(server, info):
                     break
                 item_val = list_sell[i]
                 server.tell(info.player, item_val.item_name + ' ' + item_val.money_type + ' ' + str(
-                    calc_sell_price(time.time(), item_val)))
+                    calc_sell_price(time.time(), item_val, total_sold=total_sold_count_multiplied)))
         if (info.content.startswith("!!selllist")):
             args = info.content.split(" ")
             if (len(args) > 2):
@@ -376,7 +387,7 @@ def on_info(server, info):
                     break
                 item_val = list_buy[i]
                 server.tell(info.player, item_val.item_name + ' ' + item_val.money_type + ' ' + str(
-                    calc_buy_price(time.time(), item_val)))
+                    calc_buy_price(time.time(), item_val, total_bought=total_bought_count_multiplied)))
 
 
 def on_load(server, old):
