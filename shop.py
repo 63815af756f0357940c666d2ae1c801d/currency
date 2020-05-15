@@ -38,7 +38,7 @@ class Goods_to_buy(object):
 
             self.last_price = row.last_price
             self.last_bought_time = row.last_bought_time
-            self.bought_price_multiplier=row.bought_price_multiplier
+            self.bought_price_multiplier = row.bought_price_multiplier
             return
 
         self.item_name = "air"
@@ -66,7 +66,7 @@ def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_c
     reduced_bought_max_price = (1 - item.bought_count / item.bought_multiplier / (
             1 + total_bought)) * reduced_max_price
     a = item.half_time_recover / item.time_scale + 1
-    last_price_decreased = item.last_price * item.bought_price_multiplier
+    last_price_decreased = (item.last_price - item.lowest_price) * item.bought_price_multiplier + item.lowest_price
     pb = (last_price_decreased - item.lowest_price) / (reduced_bought_max_price - item.lowest_price)
     if (pb >= 1):
         pb = 1 - 1e-8
@@ -74,7 +74,7 @@ def calc_buy_price(current_time, item: Goods_to_buy, total_bought=total_bought_c
     delta_time = current_time - item.last_bought_time
     delta_time_normalized = delta_time / item.time_scale
     current_price = sc.gammainc(a, tb + delta_time_normalized) * (
-                reduced_bought_max_price - item.lowest_price) + item.lowest_price
+            reduced_bought_max_price - item.lowest_price) + item.lowest_price
     return current_price
 
 
