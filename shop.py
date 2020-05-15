@@ -76,8 +76,8 @@ def calc_buy_price(current_time, item: Goods_to_buy, total_bought):
     current_price = sc.gammainc(a, tb + delta_time_normalized) * (
             reduced_bought_max_price - item.lowest_price) + item.lowest_price
     # debug use
-    print(item.bought_count, ' ', total_bought, ' ', reduced_bought_max_price, ' ', item.last_price, ' ', pb, ' ', tb,
-          ' ', delta_time_normalized, ' ', current_price)
+    # print(item.bought_count, ' ', total_bought, ' ', reduced_bought_max_price, ' ', item.last_price, ' ', pb, ' ', tb,
+    #      ' ', delta_time_normalized, ' ', current_price)
     return current_price
 
 
@@ -203,9 +203,9 @@ def load_config():
         list_sell = [Goods_to_sell(row) for index, row in sell_df.iterrows()]
         total_bought_count_multiplied = 0.0
         for item in list_buy:
-            print('before ', total_bought_count_multiplied, ' ', item.bought_count, ' ', item.bought_multiplier)
+            # ('before ', total_bought_count_multiplied, ' ', item.bought_count, ' ', item.bought_multiplier)
             total_bought_count_multiplied += item.bought_count / item.bought_multiplier
-            print('after ', total_bought_count_multiplied)
+            # print('after ', total_bought_count_multiplied)
         total_sold_count_multiplied = 0.0
         for item in list_sell:
             total_sold_count_multiplied += item.sold_count / item.sold_multiplier
