@@ -2,7 +2,7 @@
 currency &amp; shop using <a href='https://github.com/Fallen-Breath/MCDReforged'>MCDR</a> <br/>
 <br/>
 Requirements: <br/>
-pandas, scipy (install with scipy)
+pandas, scipy (install with pip) <br/>
 <a href="https://github.com/TISUnion/PlayerInfoAPI">PlayerInfoAPI</a> (download file either here or from source)
 <br/>
 TODO List: <br/>
