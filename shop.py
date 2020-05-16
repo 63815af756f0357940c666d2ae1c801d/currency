@@ -165,7 +165,7 @@ def calc_sell_multi_price(current_time, item: Goods_to_sell, amount):
     return totalmoney, lastmoney
 
 
-def load_config():
+def load_config(server):
     global buy_df
     global sell_df
     global list_buy
@@ -194,7 +194,7 @@ def load_config():
         f.write('\n')
         f.close()
 
-        print('blank config files generated.')
+        server.logger.info('blank config files generated.\n')
         return
     else:
         buy_df = pd.read_csv(os.path.join(config_path, 'price_buy.csv'))
@@ -209,7 +209,7 @@ def load_config():
         total_sold_count_multiplied = 0.0
         for item in list_sell:
             total_sold_count_multiplied += item.sold_count / item.sold_multiplier
-        print(len(list_buy), ' buy config(s) loaded, ', len(list_sell), ' sell config(s) loaded.')
+        server.logger.info(str(len(list_buy))+' buy config(s) loaded, '+str(len(list_sell))+' sell config(s) loaded.\n')
 
 
 def get_sell_item(item_name, coin_type) -> Goods_to_sell:
@@ -391,7 +391,7 @@ def on_info(server, info):
 
 
 def on_load(server, old):
-    load_config()
+    load_config(server)
     server.add_help_message('!!buylist [pagenum]', 'see buyable list')
     server.add_help_message('!!selllist [pagenum]', 'see sellable list')
     server.add_help_message('!!sell <item> <cointype>', 'sell item')
