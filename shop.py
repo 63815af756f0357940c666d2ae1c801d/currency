@@ -19,6 +19,20 @@ buy_df = pd.DataFrame()
 sell_df = pd.DataFrame()
 
 
+class Logger(object):
+    def __init__(self, filename: str):
+        self.log_filename = filename
+
+    def addline(self, data):
+        f = open(self.log_filename, 'a')
+        f.write(str(data) + '\n')
+        f.close()
+
+
+info_logger = None
+debug_logger = None
+
+
 class Goods_to_buy(object):
     def __init__(self, row=None):
         if not (row is None):
@@ -60,7 +74,7 @@ class Goods_to_buy(object):
         self.bought_price_multiplier = 0.998
 
 
-def calc_buy_price(current_time, item: Goods_to_buy, total_bought):
+def calc_buy_price(current_time, item: Goods_to_buy, total_bought, debug=False):
     reduced_max_price = math.exp(-item.max_price_reduce_rate * item.bought_count / item.bought_multiplier) * (
             item.max_price - item.protected_max_price) + item.protected_max_price
     reduced_bought_max_price = (1 - item.bought_count / item.bought_multiplier / (
@@ -78,6 +92,10 @@ def calc_buy_price(current_time, item: Goods_to_buy, total_bought):
     # debug use
     # print(item.bought_count, ' ', total_bought, ' ', reduced_bought_max_price, ' ', item.last_price, ' ', pb, ' ', tb,
     #      ' ', delta_time_normalized, ' ', current_price)
+    if debug:
+        debug_logger.addline(
+            [item.item_name, item.money_type, item.bought_count, reduced_max_price, reduced_bought_max_price,
+             last_price_decreased, pb, tb, delta_time, delta_time_normalized, current_price])
     return current_price
 
 
@@ -133,7 +151,7 @@ class Goods_to_sell(object):
         self.sold_price_multiplier = 1.01
 
 
-def calc_sell_price(current_time, item: Goods_to_sell, total_sold):
+def calc_sell_price(current_time, item: Goods_to_sell, total_sold, debug=False):
     current_base_price = item.base_price * (item.base_price_increase_rate ** (item.sold_count / item.sold_multiplier))
     current_sold_base_price = current_base_price * (
             1 + item.sold_count / item.sold_multiplier / (total_sold + 1))  # add one in case of zero
@@ -145,6 +163,10 @@ def calc_sell_price(current_time, item: Goods_to_sell, total_sold):
     if (before_decrease_price < current_sold_base_price):
         return current_sold_base_price
     current_price = (before_decrease_price - current_sold_base_price) * depriced_percentage + current_sold_base_price
+    if debug:
+        debug_logger.addline(
+            [item.item_name, item.money_type, item.sold_count, current_base_price, current_sold_base_price, delta_time,
+             delta_time_normalized, depriced_percentage, before_decrease_price, current_price])
     return current_price
 
 
@@ -172,6 +194,8 @@ def load_config(server):
     global list_sell
     global total_bought_count_multiplied
     global total_sold_count_multiplied
+    global info_logger
+    global debug_logger
     if not os.path.exists(config_path):
         os.mkdir('shop')
         f = open(os.path.join(config_path, 'price_buy.csv'), 'w')
@@ -195,7 +219,6 @@ def load_config(server):
         f.close()
 
         server.logger.info('blank config files generated.\n')
-        return
     else:
         buy_df = pd.read_csv(os.path.join(config_path, 'price_buy.csv'))
         sell_df = pd.read_csv(os.path.join(config_path, 'price_sell.csv'))
@@ -209,7 +232,10 @@ def load_config(server):
         total_sold_count_multiplied = 0.0
         for item in list_sell:
             total_sold_count_multiplied += item.sold_count / item.sold_multiplier
-        server.logger.info(str(len(list_buy))+' buy config(s) loaded, '+str(len(list_sell))+' sell config(s) loaded.\n')
+        server.logger.info(
+            str(len(list_buy)) + ' buy config(s) loaded, ' + str(len(list_sell)) + ' sell config(s) loaded.\n')
+    info_logger = Logger(os.path.join(config_path, 'info.log'))
+    debug_logger = Logger(os.path.join(config_path, 'debug.log'))
 
 
 def get_sell_item(item_name, coin_type) -> Goods_to_sell:
@@ -228,6 +254,7 @@ def on_info(server, info):
     global total_sold_count_multiplied
     global total_bought_count_multiplied
     if info.is_player:
+
         if info.content.startswith("!!buy "):
             args = info.content.split(" ")
             if (len(args) != 3):
@@ -247,6 +274,7 @@ def on_info(server, info):
             server.tell(info.player, itemname + ' : ' + str(server_sell_price) + ' for one, ' + str(
                 server_sell_price_10) + ' for tens, ' + str(server_sell_price_64) + ' for 64 items')
             server.tell(info.player, 'Enter !!buyconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to buy.')
+
         if (info.content.startswith("!!sell ")):
             args = info.content.split(" ")
             if (len(args) != 3):
@@ -266,6 +294,7 @@ def on_info(server, info):
             server.tell(info.player, itemname + ' : ' + str(server_buy_price) + ' for one, ' + str(
                 server_buy_price_10) + ' for tens, ' + str(server_buy_price_64) + ' for 64 items')
             server.tell(info.player, 'Enter !!sellconfirm ' + itemname + ' ' + cointype + ' ' + ' <amount> to sell.')
+
         if (info.content.startswith("!!buyconfirm ")):
             args = info.content.split(" ")
             if (len(args) != 4):
@@ -306,6 +335,9 @@ def on_info(server, info):
             sell_df.loc[df_i, 'last_sold_time'] = item_val.last_sold_time
             sell_df.loc[df_i, 'last_sold_price'] = last_item_price
             sell_df.to_csv(os.path.join(config_path, 'price_sell.csv'), index=False)
+            info_logger.addline(
+                [info.player, 'sell', item_val.item_name, item_val.money_type, amount, server_sell_price_n,
+                 last_item_price])
 
         if (info.content.startswith("!!sellconfirm ")):
             args = info.content.split(" ")
@@ -351,11 +383,46 @@ def on_info(server, info):
             buy_df.loc[df_i, 'last_bought_time'] = item_val.last_bought_time
             buy_df.loc[df_i, 'last_price'] = last_item_price
             buy_df.to_csv(os.path.join(config_path, 'price_buy.csv'), index=False)
+            info_logger.addline(
+                [info.player, 'buy', item_val.item_name, item_val.money_type, amount, server_buy_price_n,
+                 last_item_price])
+
         if (info.content.startswith("!!reloadconfig")):
             if server.get_permission_level(info) < 3:
                 server.tell(info.player, 'You don''t have permission to do that!')
                 return
-            load_config()
+            load_config(server)
+        if (info.content.startwith("!!debug ")):
+            if server.get_permission_level(info) < 3:
+                server.tell(info.player, 'You don''t have permission to do that!')
+                return
+            args = info.content.split(" ")
+            if (len(args) != 4) or ((args[1] != 'buy') and (args[1] != 'sell')):
+                server.tell(info.player, 'use !!debug buy <itemname> <cointype>')
+                server.tell(info.player, 'use !!debug sell <itemname> <cointype>')
+                return
+            if (args[1] == 'buy'):
+                itemname = args[2]
+                cointype = args[3]
+                item_val = get_sell_item(itemname, cointype)
+                if (not item_val):
+                    server.tell(info.player, itemname + ' bought with ' + cointype + ' does not exist in buyable list')
+                    return
+                server_sell_price = calc_sell_price(current_time=time.time(), item=item_val,
+                                                    total_sold=total_sold_count_multiplied, debug=True)
+                server.tell(info.player, str(server_sell_price))
+            if (args[1] == 'sell'):
+                itemname = args[2]
+                cointype = args[3]
+                # !!buy item, means player buy item, equals to server sell item
+                item_val = get_sell_item(itemname, cointype)
+                if (not item_val):
+                    server.tell(info.player, itemname + ' bought with ' + cointype + ' does not exist in buyable list')
+                    return
+                server_sell_price = calc_sell_price(current_time=time.time(), item=item_val,
+                                                    total_sold=total_sold_count_multiplied, debug=True)
+                server.tell(info.player, str(server_sell_price))
+
         if (info.content.startswith("!!buylist")):
             args = info.content.split(" ")
             if (len(args) > 2):
